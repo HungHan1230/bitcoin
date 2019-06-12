@@ -47,7 +47,18 @@
 
 #include <future>
 #include <sstream>
+#include <cpprest/http_client.h>
+#include <cpprest/filestream.h>
+
 #include <string>
+#include <stdlib.h>
+
+using namespace std;
+using namespace utility;              // Common utilities like string conversions
+using namespace web;                  // Common features like URIs.
+using namespace web::http;            // Common HTTP functionality
+using namespace web::http::client;    // HTTP client features
+using namespace concurrency::streams; // Asynchronous streams
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/thread.hpp>
@@ -892,9 +903,46 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
 }
 
 
+//////////////////////////////////////////////////////////////////////////////
+//
+// ipfs connection functions
+// author: Hank
+// time  : 2019/06/12
+//
 
+static void GetFromIPFS(string str)
+{
+    string request_uri = "/api/v0/object/get?arg=" + str + "&encoding=json";
+    http_client client(U("http://127.0.0.1:5001"));
+    http_request request(methods::GET);
+    // request.set_request_uri("/api/v0/object/get?arg=QmaaqrHyAQm7gALkRW8DcfGX3u8q9rWKnxEMmf7m9z515w&encoding=json");
+    request.set_request_uri(request_uri);
+    pplx::task<http_response> responses = client.request(request);
+    pplx::task<web::json::value> jvalue = responses.get().extract_json();
+    cout << jvalue.get();
+    printf("\nThe End...\n");
+}
 
+static void AddToIPFS(string str){
+    http_client client(U("http://127.0.0.1:5001/api/v0/add"));
+    http_request request(methods::POST);
 
+    string textBoundary = "--FORMBOUNDARY--";
+    string textBody = "";
+    textBody += "--" + textBoundary + "\r\n";
+    textBody += "Content-Disposition:form-data;name=path\r\n";
+    textBody += "\n"+str+"\r\n";
+    textBody += "--" + textBoundary + "--\r\n";
+
+    request.headers().set_content_type("multipart/form-data;boundary=--FORMBOUNDARY--");
+    request.headers().set_content_length(textBody.length());
+    request.set_body(textBody);
+    // cout << postParameters << endl;
+    pplx::task<http_response> responses = client.request(request);
+    cout << responses.get().to_string();
+    printf("\nThe End...\n");
+    cout << request.headers().content_type() << endl;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -903,6 +951,11 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
 
 static bool WriteBlockToDisk(const CBlock& block, FlatFilePos& pos, const CMessageHeader::MessageStartChars& messageStart)
 {
+    // Add block to IPFS
+    string blockinfo = "";
+    blockinfo.append(block.ToString());
+    AddToIPFS(blockinfo);
+
     // Open history file to append
     CAutoFile fileout(OpenBlockFile(pos), SER_DISK, CLIENT_VERSION);
     if (fileout.IsNull())
