@@ -956,6 +956,8 @@ static bool WriteBlockToDisk(const CBlock& block, FlatFilePos& pos, const CMessa
     blockinfo.append(block.ToString());
     AddToIPFS(blockinfo);
 
+    cout << "henry" << end ;
+
     // Open history file to append
     CAutoFile fileout(OpenBlockFile(pos), SER_DISK, CLIENT_VERSION);
     if (fileout.IsNull())
