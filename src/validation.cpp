@@ -47,18 +47,19 @@
 
 #include <future>
 #include <sstream>
-#include <cpprest/http_client.h>
-#include <cpprest/filestream.h>
+#include <cpprest/http_client.h>      // added by Hank
+#include <cpprest/filestream.h>       // added by Hank
+#include <jsoncpp/json/json.h>        // added by Hank
 
-#include <string>
-#include <stdlib.h>
+#include <string>                     // added by Hank
+#include <stdlib.h>                   // added by Hank
 
 using namespace std;
-using namespace utility;              // Common utilities like string conversions
-using namespace web;                  // Common features like URIs.
-using namespace web::http;            // Common HTTP functionality
-using namespace web::http::client;    // HTTP client features
-using namespace concurrency::streams; // Asynchronous streams
+using namespace utility;              // Common utilities like string conversions //added by Hank
+using namespace web;                  // Common features like URIs. //added by Hank
+using namespace web::http;            // Common HTTP functionality //added by Hank
+using namespace web::http::client;    // HTTP client features //added by Hank
+using namespace concurrency::streams; // Asynchronous streams //added by Hank
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/thread.hpp>
@@ -69,6 +70,7 @@ using namespace concurrency::streams; // Asynchronous streams
 
 #define MICRO 0.000001
 #define MILLI 0.001
+
 
 bool CBlockIndexWorkComparator::operator()(const CBlockIndex *pa, const CBlockIndex *pb) const {
     // First sort by most total work, ...
@@ -920,7 +922,7 @@ static void GetFromIPFS(string str)
     pplx::task<http_response> responses = client.request(request);
     pplx::task<web::json::value> jvalue = responses.get().extract_json();
     cout << jvalue.get();
-    printf("\nThe End...\n");
+    //printf("\nThe End...\n");
 }
 
 static void AddToIPFS(string str){
@@ -940,8 +942,191 @@ static void AddToIPFS(string str){
     // cout << postParameters << endl;
     pplx::task<http_response> responses = client.request(request);
     cout << responses.get().to_string();
-    printf("\nThe End...\n");
+    // printf("\nThe End...\n");
     cout << request.headers().content_type() << endl;
+}
+//////////////////////////////////////////////////////////////////////////////
+//
+// Testing ToString functions for constructing the json 
+
+std::string ToCScriptWitnessString(CScriptWitness scriptWitness)
+{
+    std::string ret = "CScriptWitness(";
+    for (unsigned int i = 0; i < scriptWitness.stack.size(); i++) {
+        if (i) {
+            ret += ", ";
+        }
+        ret += HexStr(scriptWitness.stack[i]);
+    }
+    return ret + ")";
+}
+
+std::string ToCOutPointString(COutPoint prevout)
+{
+    return strprintf("COutPoint(%s, %u)", prevout.hash.ToString().substr(0,10), prevout.n);
+}
+
+std::string ToCTxInString(CTxIn tx_in) 
+{
+    uint32_t SEQUENCE_FINAL = 0xffffffff;
+    std::string str;
+    str += "CTxIn(";
+    str += ToCOutPointString(tx_in.prevout);
+    if (tx_in.prevout.IsNull())
+        str += strprintf(", coinbase %s", HexStr(tx_in.scriptSig));
+    else
+        str += strprintf(", scriptSig=%s", HexStr(tx_in.scriptSig).substr(0, 24));
+    if (tx_in.nSequence != SEQUENCE_FINAL)
+        str += strprintf(", nSequence=%u", tx_in.nSequence);
+    str += ")";
+    return str;
+}
+
+std::string ToCTxOutString(CTxOut tx_out)
+{
+    return strprintf("CTxOut(nValue=%d.%08d, scriptPubKey=%s)", tx_out.nValue / COIN, tx_out.nValue % COIN, HexStr(tx_out.scriptPubKey).substr(0, 30));
+}
+
+
+std::string ToTransactionString(CTransactionRef tx){
+    std::string str;
+    str += strprintf("CTransaction(hash=%s, ver=%d, vin.size=%u, vout.size=%u, nLockTime=%u)\n",
+        tx->GetHash().ToString().substr(0,10),
+        tx->nVersion,
+        tx->vin.size(),
+        tx->vout.size(),
+        tx->nLockTime);
+    for (CTxIn tx_in : tx->vin)
+        str += "    " + ToCTxInString(tx_in) + "\n";
+    for (CTxIn tx_in : tx->vin)
+        str += "    " + ToCScriptWitnessString(tx_in.scriptWitness) + "\n";
+    for (CTxOut tx_out : tx->vout)
+        str += "    " + ToCTxOutString(tx_out) + "\n";
+    return str;
+}
+
+
+std::string ToBlockString(CBlock block){
+    std::stringstream s;
+    s << strprintf("CBlock(hash=%s, ver=0x%08x, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, vtx=%u)\n",
+        block.GetHash().ToString(),
+        block.nVersion,
+        block.hashPrevBlock.ToString(),
+        block.hashMerkleRoot.ToString(),
+        block.nTime, block.nBits, block.nNonce,
+        block.vtx.size());
+    for (CTransactionRef tx : block.vtx) {
+        s << "  self: " << ToTransactionString(tx) << "\n";
+    }
+    return s.str();
+}
+//////////////////////////////////////////////////////////////////////////////
+//
+// Construct block json
+
+static Json::Value ProccessScriptWitnessToJson(CScriptWitness scriptWitness){
+    Json::Value scriptWitnessArray;
+    Json::Value scriptWitnessObj;
+    for(unsigned int i =0; i<scriptWitness.stack.size(); i++){
+        scriptWitnessObj["ScriptWitness"] = HexStr(scriptWitness.stack[i]);
+        scriptWitnessArray.append(scriptWitnessObj);
+    }
+    return scriptWitnessArray;
+}
+
+static Json::Value ProccessVoutToJson(CTxOut tx_Out){
+    Json::Value CTxOutObj;
+    CAmount nvalue = tx_Out.nValue;
+    
+    CTxOutObj["nValue"] = to_string(nvalue);
+    CTxOutObj["ScriptPubKey"] = HexStr(tx_Out.scriptPubKey);
+
+    return CTxOutObj;
+}
+
+static Json::Value ProccessCOutPointToJson(COutPoint prevout){
+    Json::Value prevoutObj;
+    prevoutObj["hash"] = prevout.hash.ToString();
+    prevoutObj["n"] = prevout.n;
+    return prevoutObj;
+}
+
+static Json::Value ProccessVinToJson(CTxIn tx_in){
+    Json::Value CTxInObj;
+
+    CTxInObj["COutPoint"]= ProccessCOutPointToJson(tx_in.prevout);
+    if(tx_in.prevout.IsNull())
+        CTxInObj["coinbase"] = HexStr(tx_in.scriptSig);
+    else    
+        CTxInObj["scriptSig"] = HexStr(tx_in.scriptSig);
+    
+    if(tx_in.nSequence != tx_in.SEQUENCE_FINAL)
+        CTxInObj["nSequence"] = tx_in.nSequence;    
+    
+    return CTxInObj;
+}
+static Json::Value ProcessVtxToJson(vector<CTransactionRef> vtx, int vtx_size){
+    Json::Value vtxObj;
+    Json::Value TxArray;
+    Json::Value TxObj;
+    
+    Json::Value VinArray;
+
+    Json::Value VoutArray;
+
+    Json::Value CScriptWitnessArray;
+    Json::Value CScriptWitnessObj;
+
+    for(CTransactionRef tx : vtx){
+        TxObj["Txhash"] = tx->GetHash().ToString();
+        TxObj["version"] = tx->nVersion;
+        TxObj["nLockTime"] = tx->nLockTime;
+
+        VinArray["size"] = to_string(tx->vin.size());
+
+        VoutArray["size"] = to_string(tx->vout.size());      
+        
+        for (CTxIn tx_in : tx->vin){           
+            //VinObj["CTxIn"] = ProccessVinToJson(tx_in);
+            VinArray["CTxIn"].append(ProccessVinToJson(tx_in));
+        }
+        TxObj["Vin"] = VinArray;
+
+        for (CTxOut tx_vout : tx->vout){
+            //VoutObj["CTxOut"] = ProccessVoutToJson(tx_vout);
+            VoutArray["CTxOut"].append(ProccessVoutToJson(tx_vout));            
+        }
+        TxObj["Vout"] =  VoutArray;
+
+        for (CTxIn tx_in : tx->vin){
+            //CScriptWitnessObj = ProccessScriptWitnessToJson(tx_in.scriptWitness);
+            CScriptWitnessArray.append(ProccessScriptWitnessToJson(tx_in.scriptWitness));
+        }
+        TxObj["CSriptWitness"] = CScriptWitnessArray;
+
+        TxArray.append(TxObj);
+    }
+
+    vtxObj["size"] =  vtx_size;
+    vtxObj["Txs"] = TxArray;
+
+    return vtxObj;
+}
+
+static Json::Value ConstructBlockToJson(CBlock block){
+    Json::Value root;   
+
+    root["hash"] = block.GetHash().ToString();
+    root["hashPreBlock"] = block.hashPrevBlock.ToString();
+    root["version"] = block.nVersion;
+    root["hashMerkleRoot"] = block.hashMerkleRoot.ToString();
+    root["nTime"] = block.nTime;
+    root["nBits"] = block.nBits;
+    root["nNonce"] = block.nNonce;
+    root["vtx"] = ProcessVtxToJson(block.vtx, block.vtx.size());
+
+    return root;
+    
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -952,11 +1137,29 @@ static void AddToIPFS(string str){
 static bool WriteBlockToDisk(const CBlock& block, FlatFilePos& pos, const CMessageHeader::MessageStartChars& messageStart)
 {
     // Add block to IPFS
-    string blockinfo = "";
-    blockinfo.append(block.ToString());
-    AddToIPFS(blockinfo);
+    // author: Hank
+    // time  : 2019/06/12        
+    // string blockinfo = "";
+    // blockinfo.append(block.ToString());
+    // uint256 hash = block.GetHash();
+    // cout << "vtx[0]: " << block.vtx[0].get() << endl;
+    // cout << "vtx.size: " << block.vtx.at(1)->vin[0].ToString() << endl;
+    // cout << "Block Hash: "+ hash.ToString() << endl;
 
-    cout << "henry" << end ;
+    //cout << ToBlockString(block) << endl;
+
+    // Add block json to IPFS
+    // author: Hank
+    // time  : 2019/7/21    
+
+    //cout << ConstructBlockToJson(block).toStyledString() << endl;
+    string blockjson = ConstructBlockToJson(block).toStyledString();
+
+
+    //AddToIPFS(blockinfo);
+    AddToIPFS(blockjson);
+
+    // cout << "henry" << endl;
 
     // Open history file to append
     CAutoFile fileout(OpenBlockFile(pos), SER_DISK, CLIENT_VERSION);
