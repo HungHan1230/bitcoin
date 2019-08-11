@@ -72,6 +72,22 @@ using namespace concurrency::streams; // Asynchronous streams
 #define MICRO 0.000001
 #define MILLI 0.001
 
+// Json objects
+// Author : Hank
+// Date : 2019/08/05
+Json::Value root;   
+
+Json::Value vtxObj;
+Json::Value TxArray;
+Json::Value TxObj;
+    
+Json::Value VinArray;
+
+Json::Value VoutArray;
+
+Json::Value CScriptWitnessArray;
+Json::Value CScriptWitnessObj;
+
 bool CBlockIndexWorkComparator::operator()(const CBlockIndex *pa, const CBlockIndex *pb) const {
     // First sort by most total work, ...
     if (pa->nChainWork > pb->nChainWork) return false;
@@ -1107,17 +1123,7 @@ static Json::Value ProccessVinToJson(CTxIn tx_in){
     
     return CTxInObj;
 }
-static Json::Value ProcessVtxToJson(vector<CTransactionRef> vtx, int vtx_size){
-    Json::Value vtxObj;
-    Json::Value TxArray;
-    Json::Value TxObj;
-    
-    Json::Value VinArray;
-
-    Json::Value VoutArray;
-
-    Json::Value CScriptWitnessArray;
-    Json::Value CScriptWitnessObj;
+static Json::Value ProcessVtxToJson(vector<CTransactionRef> vtx, int vtx_size,Json::Value vtxObj,Json::Value TxArray,Json::Value TxObj,Json::Value VinArray,Json::Value VoutArray,Json::Value CScriptWitnessArray,Json::Value CScriptWitnessObj){
 
     for(CTransactionRef tx : vtx){
         TxObj["Txhash"] = tx->GetHash().ToString();
@@ -1155,20 +1161,17 @@ static Json::Value ProcessVtxToJson(vector<CTransactionRef> vtx, int vtx_size){
     return vtxObj;
 }
 
-static Json::Value ConstructBlockToJson(CBlock block){
-    Json::Value root;   
+static Json::Value ConstructBlockToJson(CBlock block, int judge){
+        root["hash"] = block.GetHash().ToString();
+        root["hashPreBlock"] = block.hashPrevBlock.ToString();
+        root["version"] = block.nVersion;
+        root["hashMerkleRoot"] = block.hashMerkleRoot.ToString();
+        root["nTime"] = block.nTime;
+        root["nBits"] = block.nBits;
+        root["nNonce"] = block.nNonce;
+        root["vtx"] = ProcessVtxToJson(block.vtx, block.vtx.size(),vtxObj,TxArray,TxObj,VinArray,VoutArray,CScriptWitnessArray,CScriptWitnessObj);
 
-    root["hash"] = block.GetHash().ToString();
-    root["hashPreBlock"] = block.hashPrevBlock.ToString();
-    root["version"] = block.nVersion;
-    root["hashMerkleRoot"] = block.hashMerkleRoot.ToString();
-    root["nTime"] = block.nTime;
-    root["nBits"] = block.nBits;
-    root["nNonce"] = block.nNonce;
-    root["vtx"] = ProcessVtxToJson(block.vtx, block.vtx.size());
-
-    return root;
-    
+        return root;    
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1236,7 +1239,7 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex*    pindex, const Consen
     }
 
     // ---- Read Block From Disk ---- henry 20190723
-     string IPFShash = ReadIPFSHashFromDisk(to_string(pindex->nHeight));
+    string IPFShash = ReadIPFSHashFromDisk(to_string(pindex->nHeight));
 
     cout << "Getting block from this hash:" << IPFShash << endl;
     // ---- Get IPFS file by IPFShash ----
@@ -3634,7 +3637,9 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
         // author: Hank
         // time  : 2019/7/29    
         //cout << ConstructBlockToJson(block).toStyledString() << endl;
-        string blockjson = ConstructBlockToJson(block).toStyledString();
+
+        //Json::Value root = ConstructBlockToJson(block,0);
+        string blockjson = ConstructBlockToJson(block,0).toStyledString();
         string ResponseJson = AddToIPFS(blockjson);
 
         Json::Value value;
@@ -3643,10 +3648,22 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
         if(reader.parse(ResponseJson,value)){
             IPFSHash = value["Hash"].asString();        
         }
+
         //cout << "IPFSHash: " << IPFSHash << endl;
 
         // ---- Write IPFS-HASH To Disk ----Henry 20190723
-        WriteIPFSHashToDisk(to_string(nHeight), block.GetHash().ToString());
+        //WriteIPFSHashToDisk(to_string(nHeight), block.GetHash().ToString());
+        // ---- Write IPFS-HASH To Disk ----Hank 20190730
+        WriteIPFSHashToDisk(to_string(nHeight), IPFSHash);
+        //ConstructBlockToJson(block,1);
+        vtxObj.clear();
+        TxArray.clear();
+        TxObj.clear();
+        VinArray.clear();
+        VoutArray.clear();
+        CScriptWitnessArray.clear();
+        CScriptWitnessObj.clear();        
+        root.clear();
 
         if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart())) {
             AbortNode("Failed to write block");
