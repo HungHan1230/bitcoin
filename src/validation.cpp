@@ -49,12 +49,13 @@
 #include <sstream>
 #include <cpprest/http_client.h>
 #include <cpprest/filestream.h>
-#include <jsoncpp/json/json.h>   // added by Hank
+#include <jsoncpp/json/json.h>   // added by Hank 20190715
 
 #include <string>
 #include <stdlib.h>
 #include "leveldb/db.h"  // Henry edit 19.07.15
 
+// added by Hank 20190715
 using namespace std;
 using namespace utility;              // Common utilities like string conversions
 using namespace web;                  // Common features like URIs.
@@ -75,18 +76,23 @@ using namespace concurrency::streams; // Asynchronous streams
 // Json objects
 // Author : Hank
 // Date : 2019/08/05
-Json::Value root;   
+// Json::Value root;   
 
-Json::Value vtxObj;
-Json::Value TxArray;
-Json::Value TxObj;
+// Json::Value vtxObj;
+// Json::Value TxArray;
+// Json::Value TxObj;
     
-Json::Value VinArray;
+// Json::Value VinArray;
 
-Json::Value VoutArray;
+// Json::Value VoutArray;
 
-Json::Value CScriptWitnessArray;
-Json::Value CScriptWitnessObj;
+// Json::Value CScriptWitnessArray;
+// Json::Value CScriptWitnessObj;
+// Json::Value scriptWitnessArray;
+// Json::Value scriptWitnessObj;
+// Json::Value CTxOutObj;
+// Json::Value prevoutObj;
+// Json::Value CTxInObj;
 
 bool CBlockIndexWorkComparator::operator()(const CBlockIndex *pa, const CBlockIndex *pb) const {
     // First sort by most total work, ...
@@ -1082,18 +1088,25 @@ std::string ToBlockString(CBlock block){
 //
 // Construct block json
 
-static Json::Value ProccessScriptWitnessToJson(CScriptWitness scriptWitness){
+static Json::Value ProccessScriptWitnessToJson(CScriptWitness scriptWitness){    
     Json::Value scriptWitnessArray;
     Json::Value scriptWitnessObj;
+
     for(unsigned int i =0; i<scriptWitness.stack.size(); i++){
         scriptWitnessObj["ScriptWitness"] = HexStr(scriptWitness.stack[i]);
-        scriptWitnessArray.append(scriptWitnessObj);
+
+        if(scriptWitnessObj["ScriptWitness"].isNull()){
+            break;
+        }
+        else
+            scriptWitnessArray.append(scriptWitnessObj);
     }
     return scriptWitnessArray;
 }
 
 static Json::Value ProccessVoutToJson(CTxOut tx_Out){
     Json::Value CTxOutObj;
+
     CAmount nvalue = tx_Out.nValue;
     
     CTxOutObj["nValue"] = to_string(nvalue);
@@ -1109,7 +1122,7 @@ static Json::Value ProccessCOutPointToJson(COutPoint prevout){
     return prevoutObj;
 }
 
-static Json::Value ProccessVinToJson(CTxIn tx_in){
+static Json::Value ProccessVinToJson(CTxIn tx_in){    
     Json::Value CTxInObj;
 
     CTxInObj["COutPoint"]= ProccessCOutPointToJson(tx_in.prevout);
@@ -1123,7 +1136,19 @@ static Json::Value ProccessVinToJson(CTxIn tx_in){
     
     return CTxInObj;
 }
-static Json::Value ProcessVtxToJson(vector<CTransactionRef> vtx, int vtx_size,Json::Value vtxObj,Json::Value TxArray,Json::Value TxObj,Json::Value VinArray,Json::Value VoutArray,Json::Value CScriptWitnessArray,Json::Value CScriptWitnessObj){
+
+static Json::Value ProcessVtxToJson(vector<CTransactionRef> vtx, int vtx_size){
+
+    Json::Value vtxObj;
+    Json::Value TxArray;
+    Json::Value TxObj;
+
+    Json::Value VinArray;
+
+    Json::Value VoutArray;
+
+    Json::Value CScriptWitnessArray;
+    Json::Value CScriptWitnessObj;
 
     for(CTransactionRef tx : vtx){
         TxObj["Txhash"] = tx->GetHash().ToString();
@@ -1131,37 +1156,46 @@ static Json::Value ProcessVtxToJson(vector<CTransactionRef> vtx, int vtx_size,Js
         TxObj["nLockTime"] = tx->nLockTime;
 
         VinArray["size"] = to_string(tx->vin.size());
-
         VoutArray["size"] = to_string(tx->vout.size());      
-        
-        for (CTxIn tx_in : tx->vin){           
-            //VinObj["CTxIn"] = ProccessVinToJson(tx_in);
+            
+        //cout << "Processing Vin" << endl;                
+        for (CTxIn tx_in : tx->vin){                
             VinArray["CTxIn"].append(ProccessVinToJson(tx_in));
         }
         TxObj["Vin"] = VinArray;
 
-        for (CTxOut tx_vout : tx->vout){
-            //VoutObj["CTxOut"] = ProccessVoutToJson(tx_vout);
+        //cout << "Processing Vout" << endl;                
+        for (CTxOut tx_vout : tx->vout){                
             VoutArray["CTxOut"].append(ProccessVoutToJson(tx_vout));            
         }
         TxObj["Vout"] =  VoutArray;
 
+        //cout << "Processing CScriptWitness" << endl;                
         for (CTxIn tx_in : tx->vin){
-            //CScriptWitnessObj = ProccessScriptWitnessToJson(tx_in.scriptWitness);
-            CScriptWitnessArray.append(ProccessScriptWitnessToJson(tx_in.scriptWitness));
+            CScriptWitnessObj = ProccessScriptWitnessToJson(tx_in.scriptWitness);
+
+            if(CScriptWitnessObj.isNull()){
+                break;
+            }
+            else
+                CScriptWitnessArray.append(ProccessScriptWitnessToJson(tx_in.scriptWitness));
         }
         TxObj["CSriptWitness"] = CScriptWitnessArray;
 
         TxArray.append(TxObj);
     }
 
+    //cout << "Construct json completed..." << endl;
     vtxObj["size"] =  vtx_size;
+    //cout << "Storing TxArray..." << endl;
     vtxObj["Txs"] = TxArray;
 
-    return vtxObj;
+    return vtxObj;   
 }
 
-static Json::Value ConstructBlockToJson(CBlock block, int judge){
+static void ConstructBlockToJson(CBlock block, Json::Value &myroot){
+        Json::Value root;
+        
         root["hash"] = block.GetHash().ToString();
         root["hashPreBlock"] = block.hashPrevBlock.ToString();
         root["version"] = block.nVersion;
@@ -1169,9 +1203,15 @@ static Json::Value ConstructBlockToJson(CBlock block, int judge){
         root["nTime"] = block.nTime;
         root["nBits"] = block.nBits;
         root["nNonce"] = block.nNonce;
-        root["vtx"] = ProcessVtxToJson(block.vtx, block.vtx.size(),vtxObj,TxArray,TxObj,VinArray,VoutArray,CScriptWitnessArray,CScriptWitnessObj);
+        root["vtx"] = ProcessVtxToJson(block.vtx, block.vtx.size());
 
-        return root;    
+        // Solved the memory leak problem, take off the "return root" instead of "myroot = root".
+        // author: Hank
+        // time  : 2019/8/13   
+        myroot = root;
+        //cout << myroot.toStyledString() << endl;
+        //cout << &myroot << endl;
+        //cout << &root <<endl;        
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -3635,11 +3675,15 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
 
         // Add block json to IPFS (moved from writeblockToDisk)
         // author: Hank
-        // time  : 2019/7/29    
-        //cout << ConstructBlockToJson(block).toStyledString() << endl;
+        // time  : 2019/8/13    
+        //cout << ConstructBlockToJson(block).toStyledString() << endl;        
+        cout << "Processing Height: " << nHeight << endl;
+        Json::Value root;
+        ConstructBlockToJson(block, root);
 
-        //Json::Value root = ConstructBlockToJson(block,0);
-        string blockjson = ConstructBlockToJson(block,0).toStyledString();
+        //cout << "test root json:\n" << root.toStyledString() << endl;
+
+        string blockjson = root.toStyledString();
         string ResponseJson = AddToIPFS(blockjson);
 
         Json::Value value;
@@ -3653,17 +3697,9 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
 
         // ---- Write IPFS-HASH To Disk ----Henry 20190723
         //WriteIPFSHashToDisk(to_string(nHeight), block.GetHash().ToString());
+        
         // ---- Write IPFS-HASH To Disk ----Hank 20190730
-        WriteIPFSHashToDisk(to_string(nHeight), IPFSHash);
-        //ConstructBlockToJson(block,1);
-        vtxObj.clear();
-        TxArray.clear();
-        TxObj.clear();
-        VinArray.clear();
-        VoutArray.clear();
-        CScriptWitnessArray.clear();
-        CScriptWitnessObj.clear();        
-        root.clear();
+        WriteIPFSHashToDisk(to_string(nHeight), IPFSHash);        
 
         if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart())) {
             AbortNode("Failed to write block");
