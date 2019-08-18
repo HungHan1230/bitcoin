@@ -49,7 +49,6 @@
 #include <sstream>
 #include <cpprest/http_client.h>
 #include <cpprest/filestream.h>
-#include <jsoncpp/json/json.h>   // added by Hank 20190715
 
 #include <string>
 #include <stdlib.h>
@@ -73,26 +72,6 @@ using namespace concurrency::streams; // Asynchronous streams
 #define MICRO 0.000001
 #define MILLI 0.001
 
-// Json objects
-// Author : Hank
-// Date : 2019/08/05
-// Json::Value root;   
-
-// Json::Value vtxObj;
-// Json::Value TxArray;
-// Json::Value TxObj;
-    
-// Json::Value VinArray;
-
-// Json::Value VoutArray;
-
-// Json::Value CScriptWitnessArray;
-// Json::Value CScriptWitnessObj;
-// Json::Value scriptWitnessArray;
-// Json::Value scriptWitnessObj;
-// Json::Value CTxOutObj;
-// Json::Value prevoutObj;
-// Json::Value CTxInObj;
 
 bool CBlockIndexWorkComparator::operator()(const CBlockIndex *pa, const CBlockIndex *pb) const {
     // First sort by most total work, ...
@@ -1010,208 +989,81 @@ static string AddToIPFS(string str){
     return s.get();
 }
 //////////////////////////////////////////////////////////////////////////////
-//
-// Testing ToString functions for constructing the json 
+// Author : Hank
+// Date : 20190817
+// Using Cpprest construct the block json
 
-std::string ToCScriptWitnessString(CScriptWitness scriptWitness)
-{
-    std::string ret = "CScriptWitness(";
-    for (unsigned int i = 0; i < scriptWitness.stack.size(); i++) {
-        if (i) {
-            ret += ", ";
-        }
-        ret += HexStr(scriptWitness.stack[i]);
-    }
-    return ret + ")";
+void CppRestProccessVoutToJson(CTxOut tx_Out, int counter, json::value &Vout){    
+    Vout["CTxOut"][counter]["nValue"] = json::value::number(tx_Out.nValue);
+    Vout["CTxOut"][counter]["ScriptPubkey"] = json::value::string(HexStr(tx_Out.scriptPubKey));    
 }
 
-std::string ToCOutPointString(COutPoint prevout)
-{
-    return strprintf("COutPoint(%s, %u)", prevout.hash.ToString().substr(0,10), prevout.n);
+void CppRestProccessScriptWitnessToJson(CScriptWitness scriptWitness, json::value &CScriptWitness){
+    //cout << "for loop of scriptwitness..." << endl;
+    for(unsigned int i =0; i<scriptWitness.stack.size(); i++){        
+        // There's nothing show up, so I tried this to see what's going on.
+        //cout << "CScriptWitness: " << HexStr(scriptWitness.stack[i]) << endl;
+        CScriptWitness[i] = json::value::string(HexStr(scriptWitness.stack[i]));                
+    }    
 }
 
-std::string ToCTxInString(CTxIn tx_in) 
-{
-    uint32_t SEQUENCE_FINAL = 0xffffffff;
-    std::string str;
-    str += "CTxIn(";
-    str += ToCOutPointString(tx_in.prevout);
-    if (tx_in.prevout.IsNull())
-        str += strprintf(", coinbase %s", HexStr(tx_in.scriptSig));
-    else
-        str += strprintf(", scriptSig=%s", HexStr(tx_in.scriptSig).substr(0, 24));
-    if (tx_in.nSequence != SEQUENCE_FINAL)
-        str += strprintf(", nSequence=%u", tx_in.nSequence);
-    str += ")";
-    return str;
-}
-
-std::string ToCTxOutString(CTxOut tx_out)
-{
-    return strprintf("CTxOut(nValue=%d.%08d, scriptPubKey=%s)", tx_out.nValue / COIN, tx_out.nValue % COIN, HexStr(tx_out.scriptPubKey).substr(0, 30));
-}
-
-
-std::string ToTransactionString(CTransactionRef tx){
-    std::string str;
-    str += strprintf("CTransaction(hash=%s, ver=%d, vin.size=%u, vout.size=%u, nLockTime=%u)\n",
-        tx->GetHash().ToString().substr(0,10),
-        tx->nVersion,
-        tx->vin.size(),
-        tx->vout.size(),
-        tx->nLockTime);
-    for (CTxIn tx_in : tx->vin)
-        str += "    " + ToCTxInString(tx_in) + "\n";
-    for (CTxIn tx_in : tx->vin)
-        str += "    " + ToCScriptWitnessString(tx_in.scriptWitness) + "\n";
-    for (CTxOut tx_out : tx->vout)
-        str += "    " + ToCTxOutString(tx_out) + "\n";
-    return str;
-}
-
-
-std::string ToBlockString(CBlock block){
-    std::stringstream s;
-    s << strprintf("CBlock(hash=%s, ver=0x%08x, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, vtx=%u)\n",
-        block.GetHash().ToString(),
-        block.nVersion,
-        block.hashPrevBlock.ToString(),
-        block.hashMerkleRoot.ToString(),
-        block.nTime, block.nBits, block.nNonce,
-        block.vtx.size());
-    for (CTransactionRef tx : block.vtx) {
-        s << "  self: " << ToTransactionString(tx) << "\n";
-    }
-    return s.str();
-}
-//////////////////////////////////////////////////////////////////////////////
-//
-// Construct block json
-
-static Json::Value ProccessScriptWitnessToJson(CScriptWitness scriptWitness){    
-    Json::Value scriptWitnessArray;
-    Json::Value scriptWitnessObj;
-
-    for(unsigned int i =0; i<scriptWitness.stack.size(); i++){
-        scriptWitnessObj["ScriptWitness"] = HexStr(scriptWitness.stack[i]);
-
-        if(scriptWitnessObj["ScriptWitness"].isNull()){
-            break;
-        }
-        else
-            scriptWitnessArray.append(scriptWitnessObj);
-    }
-    return scriptWitnessArray;
-}
-
-static Json::Value ProccessVoutToJson(CTxOut tx_Out){
-    Json::Value CTxOutObj;
-
-    CAmount nvalue = tx_Out.nValue;
-    
-    CTxOutObj["nValue"] = to_string(nvalue);
-    CTxOutObj["ScriptPubKey"] = HexStr(tx_Out.scriptPubKey);
-
-    return CTxOutObj;
-}
-
-static Json::Value ProccessCOutPointToJson(COutPoint prevout){
-    Json::Value prevoutObj;
-    prevoutObj["hash"] = prevout.hash.ToString();
-    prevoutObj["n"] = prevout.n;
-    return prevoutObj;
-}
-
-static Json::Value ProccessVinToJson(CTxIn tx_in){    
-    Json::Value CTxInObj;
-
-    CTxInObj["COutPoint"]= ProccessCOutPointToJson(tx_in.prevout);
+void CppRestProccessVinToJson(CTxIn tx_in,int counter, json::value &Vin){
     if(tx_in.prevout.IsNull())
-        CTxInObj["coinbase"] = HexStr(tx_in.scriptSig);
-    else    
-        CTxInObj["scriptSig"] = HexStr(tx_in.scriptSig);
-    
+        Vin["CTxIn"][counter]["coinbase"] = json::value::string(HexStr(tx_in.scriptSig));
+    else
+        Vin["CTxIn"][counter]["ScriptSig"] = json::value::string(HexStr(tx_in.scriptSig));
     if(tx_in.nSequence != tx_in.SEQUENCE_FINAL)
-        CTxInObj["nSequence"] = tx_in.nSequence;    
+        Vin["CTxIn"][counter]["nSequence"] = json::value::number(tx_in.nSequence);   
     
-    return CTxInObj;
+    // ProccessCOutPointToJson(Vin["CTxIn"]);    
+    Vin["CTxIn"][counter]["COutPoint"]["hash"] = json::value::string(tx_in.prevout.hash.ToString());
+    Vin["CTxIn"][counter]["COutPoint"]["n"] = json::value::number(tx_in.prevout.n);    
 }
 
-static Json::Value ProcessVtxToJson(vector<CTransactionRef> vtx, int vtx_size){
+void CppRestProccessVtxToJson(vector<CTransactionRef> vtx, int vtx_size, json::value &root){
 
-    Json::Value vtxObj;
-    Json::Value TxArray;
-    Json::Value TxObj;
+    int index = 0;
+    root["vtx"]["size"] = json::value::number(vtx_size);
 
-    Json::Value VinArray;
+    for(CTransactionRef tx : vtx){        
+        root["vtx"]["Txs"][index]["Txhash"] = json::value::string(tx -> GetHash().ToString());
+        root["vtx"]["Txs"][index]["nVersion"] = json::value::number(tx -> nVersion);
+        root["vtx"]["Txs"][index]["nLockTime"] = json::value::number(tx -> nLockTime);     
 
-    Json::Value VoutArray;
-
-    Json::Value CScriptWitnessArray;
-    Json::Value CScriptWitnessObj;
-
-    for(CTransactionRef tx : vtx){
-        TxObj["Txhash"] = tx->GetHash().ToString();
-        TxObj["version"] = tx->nVersion;
-        TxObj["nLockTime"] = tx->nLockTime;
-
-        VinArray["size"] = to_string(tx->vin.size());
-        VoutArray["size"] = to_string(tx->vout.size());      
-            
-        //cout << "Processing Vin" << endl;                
-        for (CTxIn tx_in : tx->vin){                
-            VinArray["CTxIn"].append(ProccessVinToJson(tx_in));
-        }
-        TxObj["Vin"] = VinArray;
-
-        //cout << "Processing Vout" << endl;                
-        for (CTxOut tx_vout : tx->vout){                
-            VoutArray["CTxOut"].append(ProccessVoutToJson(tx_vout));            
-        }
-        TxObj["Vout"] =  VoutArray;
-
-        //cout << "Processing CScriptWitness" << endl;                
-        for (CTxIn tx_in : tx->vin){
-            CScriptWitnessObj = ProccessScriptWitnessToJson(tx_in.scriptWitness);
-
-            if(CScriptWitnessObj.isNull()){
-                break;
-            }
-            else
-                CScriptWitnessArray.append(ProccessScriptWitnessToJson(tx_in.scriptWitness));
-        }
-        TxObj["CSriptWitness"] = CScriptWitnessArray;
-
-        TxArray.append(TxObj);
-    }
-
-    //cout << "Construct json completed..." << endl;
-    vtxObj["size"] =  vtx_size;
-    //cout << "Storing TxArray..." << endl;
-    vtxObj["Txs"] = TxArray;
-
-    return vtxObj;   
-}
-
-static void ConstructBlockToJson(CBlock block, Json::Value &myroot){
-        Json::Value root;
+        root["vtx"]["Txs"][index]["Vin"]["size"] = json::value::number(tx -> vin.size());
+        root["vtx"]["Txs"][index]["Vout"]["size"] = json::value::number(tx -> vout.size());
         
-        root["hash"] = block.GetHash().ToString();
-        root["hashPreBlock"] = block.hashPrevBlock.ToString();
-        root["version"] = block.nVersion;
-        root["hashMerkleRoot"] = block.hashMerkleRoot.ToString();
-        root["nTime"] = block.nTime;
-        root["nBits"] = block.nBits;
-        root["nNonce"] = block.nNonce;
-        root["vtx"] = ProcessVtxToJson(block.vtx, block.vtx.size());
+        //cout << "Proccessing Vin..." << endl;
+        int tx_in_Counter = 0;        
+        for(CTxIn tx_in : tx -> vin){
+            CppRestProccessVinToJson(tx_in,tx_in_Counter, root["vtx"]["Txs"][index]["Vin"]);
+            tx_in_Counter++;
+        }
+        //cout << "Proccessing Vout..." << endl;
+        int tx_out_Counter = 0;
+        for(CTxOut tx_out : tx -> vout){
+            CppRestProccessVoutToJson(tx_out, tx_out_Counter, root["vtx"]["Txs"][index]["Vout"]);
+            tx_out_Counter++;            
+        }
+        // cout << "Proccessing CScriptWitness..." << endl;
+        for(CTxIn tx_in : tx -> vin){
+            CppRestProccessScriptWitnessToJson(tx_in.scriptWitness, root["vtx"]["Txs"][index]["CscriptWitness"]);
+        }
+        index++;
+    }
+}
 
-        // Solved the memory leak problem, take off the "return root" instead of "myroot = root".
-        // author: Hank
-        // time  : 2019/8/13   
-        myroot = root;
-        //cout << myroot.toStyledString() << endl;
-        //cout << &myroot << endl;
-        //cout << &root <<endl;        
+void CppRestConstructBlockToJson(CBlock block, json::value &root){
+    root["hash"] = json::value::string(block.GetHash().ToString());
+    root["hashPreBlock"] = json::value::string(block.hashPrevBlock.ToString());
+    root["version"] = json::value::number(block.nVersion);
+    root["hashMerkleRoot"] = json::value::string(block.hashMerkleRoot.ToString());
+    root["nTime"] = json::value::number(block.nTime);
+    root["nBits"] = json::value::number(block.nBits);
+    root["nNonce"] = json::value::number(block.nNonce);
+    CppRestProccessVtxToJson(block.vtx, block.vtx.size(), root);    
+
+    cout << "Construction completed...." << endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -3673,26 +3525,25 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
     }
     if (dbp == nullptr) {
 
-        // Add block json to IPFS (moved from writeblockToDisk)
+        // Add block json to IPFS (moved from writeblockToDisk) 2019/8/13 
+        // Change json construction function to solve memory leak problem.
         // author: Hank
-        // time  : 2019/8/13    
-        //cout << ConstructBlockToJson(block).toStyledString() << endl;        
+        // time  : 2019/8/17
         cout << "Processing Height: " << nHeight << endl;
-        Json::Value root;
-        ConstructBlockToJson(block, root);
-
-        //cout << "test root json:\n" << root.toStyledString() << endl;
-
-        string blockjson = root.toStyledString();
+        json::value root;
+        CppRestConstructBlockToJson(block,root);
+        string blockjson = root.serialize();
         string ResponseJson = AddToIPFS(blockjson);
-
-        Json::Value value;
-        Json::Reader reader;
+        // sometimes this command doesn't work.... Hank 20190817        
+        cout << blockjson << endl;
+        // Only need the hash value from the response json.  That's why I did the following things to pop it. Hank 20190817
+        stringstream_t s;
+        s << ResponseJson;
+        json::value Response = json::value::parse(s);
         string IPFSHash;
-        if(reader.parse(ResponseJson,value)){
-            IPFSHash = value["Hash"].asString();        
-        }
-
+        IPFSHash = Response["Hash"].serialize();
+        IPFSHash.erase(0,IPFSHash.find_first_not_of("\""));
+        IPFSHash.erase(IPFSHash.find_last_not_of("\"") + 1);
         //cout << "IPFSHash: " << IPFSHash << endl;
 
         // ---- Write IPFS-HASH To Disk ----Henry 20190723
