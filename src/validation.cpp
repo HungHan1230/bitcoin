@@ -901,7 +901,7 @@ static void WriteIPFSHashToDisk(string pindex, string IPFSHash)
     option.create_if_missing = true;
     leveldb::DB::Open(option, path.string(), &db);
     db->Put(leveldb::WriteOptions(), pindex, IPFSHash);
-    cout << "WriteIPFSHashToDisk( value = " << pindex << " : " << IPFSHash << ")" << endl;
+    // cout << "WriteIPFSHashToDisk( value = " << pindex << " : " << IPFSHash << ")" << endl;
 
     delete db;
 }
@@ -916,7 +916,7 @@ static string ReadIPFSHashFromDisk(string pindex)
     option.create_if_missing = true;
     leveldb::DB::Open(option, path.string(), &db);
     db->Get(leveldb::ReadOptions(), pindex, &IPFSHash);
-    cout << "ReadIPFSHashFromDisk( value = " << pindex << " : " << IPFSHash << ")" << endl;
+    // cout << "ReadIPFSHashFromDisk( value = " << pindex << " : " << IPFSHash << ")" << endl;
     delete db;
 
     return IPFSHash;
@@ -928,7 +928,7 @@ static string ReadIPFSHashFromDisk(string pindex)
 // time  : 2019/06/12
 //
 
-static void GetFromIPFS(string str)
+static void GetFromIPFS(CBlock& block, string str)
 {
     // ---- change api from /object/get to /cat ---- Hank 20190902
     string request_uri = "/api/v0/cat?arg=" + str + "&encoding=json";
@@ -938,53 +938,52 @@ static void GetFromIPFS(string str)
     request.set_request_uri(request_uri);
     pplx::task<http_response> responses = client.request(request);
     pplx::task<string> responseStr = responses.get().extract_string();
-    cout << "Response json:\n" << responseStr.get() << endl;
+    // cout << "Response json:\n" << responseStr.get() << endl;
 
     //---- unserialize json string to the original CBlock data structure ---- Hank 20190902
-    CBlock block_json;    
+    // CBlock block_json;    
     stringstream_t s;
     s << responseStr.get();
     json::value Response = json::value::parse(s);
 
     string temp = "";
     string blockHex = Response.serialize();
-    cout << "blockHex:\n" << blockHex << endl;
+    // cout << "blockHex:\n" << blockHex << endl;
 
-    block_json.nVersion = atoi(Response["nVersion"].serialize());
+    block.nVersion = atoi(Response["nVersion"].serialize());
     // cout << "nVersion: " << atoi(Response["nVersion"].serialize()) << endl;
     
     temp = Response["hashMerkleRoot"].serialize();
     temp.erase(0,temp.find_first_not_of("\""));
     temp.erase(temp.find_last_not_of("\"")+1); 
-    block_json.hashMerkleRoot = uint256S(temp);
+    block.hashMerkleRoot = uint256S(temp);
     // cout << "hashMerkleRoot: " << Response["hashMerkleRoot"].serialize() << endl;
 
     temp = Response["hashPrevBlock"].serialize();
     temp.erase(0,temp.find_first_not_of("\""));
     temp.erase(temp.find_last_not_of("\"")+1); 
-    block_json.hashPrevBlock = uint256S(temp);    
+    block.hashPrevBlock = uint256S(temp);    
     // cout << "hashPrevBlock: " << Response["hashPrevBlock"].serialize() << endl;
 
-    block_json.nTime = atoi(Response["nTime"].serialize());
+    block.nTime = atoi(Response["nTime"].serialize());
     // cout << "nTime: " << Response["nTime"].serialize() << endl;
-    block_json.nBits = atoi(Response["nBits"].serialize());
+    block.nBits = atoi(Response["nBits"].serialize());
     // cout << "nBits: " << Response["nBits"].serialize() << endl;
-    block_json.nNonce = atoi(Response["nNonce"].serialize());
+    block.nNonce = atoi(Response["nNonce"].serialize());
     // cout << "nNonce: " << Response["nNonce"].serialize() << endl;
     
     for(int i =0; i < atoi(Response["vtx"]["size"].serialize()); i++){
         string txHex = Response["vtx"]["Txs"][i].serialize();
         txHex.erase(0,txHex.find_first_not_of("\""));
         txHex.erase(txHex.find_last_not_of("\"")+1);    
-        cout << "txHex: " << txHex << endl;   
+        // cout << "txHex: " << txHex << endl;   
         CMutableTransaction Mtx{};
         DecodeHexTx(Mtx,txHex,true);
-        block_json.vtx.push_back(MakeTransactionRef(std::move(Mtx)));
+        block.vtx.push_back(MakeTransactionRef(std::move(Mtx)));
     }      
     // CTransaction finaltx = CTransaction(Mtx);
     // cout << "finaltx:\n" << finaltx.ToString() << endl;
-    cout << block_json.ToString() << endl;
-    
+    // cout << block.ToString() << endl;
 }
 
 static string AddToIPFS(string str)
@@ -1004,13 +1003,11 @@ static string AddToIPFS(string str)
     request.set_body(textBody);
     // cout << postParameters << endl;
     pplx::task<http_response> responses = client.request(request);
-    cout << "responses.get() \n"
-         << responses.get().to_string();
+    // cout << "responses.get() \n" << responses.get().to_string();
 
     pplx::task<string> s = responses.get().extract_string();
 
-    cout << "responses body \n"
-         << s.get() << endl;
+    // cout << "responses body \n" << s.get() << endl;
 
     //pplx::task<web::json::value> s1 = responses.get().extract_json();
     //s1.get().object().to_string();
@@ -1066,7 +1063,7 @@ void CppRestProccessVtxToJson(vector<CTransactionRef> vtx, int vtx_size, json::v
     for (const auto& it : vtx) {
         const CTransaction& tx = *it;
         string hexTx = EncodeHexTx(tx);
-        cout << "Uploaded hexTx:\n" << hexTx << endl;
+        // cout << "Uploaded hexTx:\n" << hexTx << endl;
         root["vtx"]["Txs"][index] = json::value::string(hexTx);
         index++;
         // cout << "Origin tx:\n" << tx.ToString() << endl;
@@ -1117,7 +1114,7 @@ void CppRestConstructBlockToJson(CBlock block, json::value& root)
     root["nNonce"] = json::value::number(block.nNonce);
     CppRestProccessVtxToJson(block.vtx, block.vtx.size(), root);
 
-    cout << "Construction completed...." << endl;
+    // cout << "Construction completed...." << endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1180,18 +1177,20 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
     {
         LOCK(cs_main);
         blockPos = pindex->GetBlockPos();
-        cout << "Height : " << pindex->nHeight << endl;
+        // cout << "Height : " << pindex->nHeight << endl;
     }
 
     // ---- Read Block From Disk ---- henry 20190723
     string IPFShash = ReadIPFSHashFromDisk(to_string(pindex->nHeight));
 
-    cout << "Getting block from this hash:" << IPFShash << endl;
+    // cout << "Getting block from this hash:" << IPFShash << endl;
     // ---- Get IPFS file by IPFShash ----
-    GetFromIPFS(IPFShash);
-
+    block.SetNull();
+    GetFromIPFS(block, IPFShash);
+    /* Do not use levelDB ----Hanry 20191209
     if (!ReadBlockFromDisk(block, blockPos, consensusParams))
         return false;
+    */
     if (block.GetHash() != pindex->GetBlockHash())
         return error("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
             pindex->ToString(), pindex->GetBlockPos().ToString());
@@ -3592,13 +3591,13 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
         // Change json construction function to solve memory leak problem.
         // author: Hank
         // time  : 2019/8/17
-        cout << "Processing Height: " << nHeight << endl;
+        // cout << "Processing Height: " << nHeight << endl;
         json::value root;
         CppRestConstructBlockToJson(block, root);
         string blockjson = root.serialize();
         string ResponseJson = AddToIPFS(blockjson);
         // sometimes this command doesn't work.... Hank 20190817
-        cout << blockjson << endl;
+        // cout << blockjson << endl;
         // Only need the hash value from the response json.  That's why I did the following things to pop it. Hank 20190817
         stringstream_t s;
         s << ResponseJson;
@@ -3609,16 +3608,14 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
         IPFSHash.erase(IPFSHash.find_last_not_of("\"") + 1);
         //cout << "IPFSHash: " << IPFSHash << endl;
 
-        // ---- Write IPFS-HASH To Disk ----Henry 20190723
-        //WriteIPFSHashToDisk(to_string(nHeight), block.GetHash().ToString());
-
         // ---- Write IPFS-HASH To Disk ----Hank 20190730
         WriteIPFSHashToDisk(to_string(nHeight), IPFSHash);
-
+        /* Do not use levelDB ----Hanry 20191209
         if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart())) {
             AbortNode("Failed to write block");
             return FlatFilePos();
         }
+        */
     }
     return blockPos;
 }
