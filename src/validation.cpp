@@ -54,6 +54,7 @@
 #include "leveldb/db.h" // Henry edit 19.07.15
 #include <stdlib.h>
 #include <string>
+#include "ipfs_client/ipfs_myclient.h" // Hank edit 20191217
 
 // added by Hank 20190715
 using namespace std;
@@ -923,6 +924,48 @@ static string ReadIPFSHashFromDisk(string pindex)
 }
 //////////////////////////////////////////////////////////////////////////////
 //
+// ipfs http api go version
+// author: Hank
+// time  : 2019/12/17
+//
+static void GetFromIPFS_GO(CBlock& block, string CidStr){
+    const char* cid = CidStr.c_str();
+    const char* ipfsjson = GetObjectFromIPFS(cid);
+    //string str(ipfsjson);
+    string IpfsJsonStr = ipfsjson;    
+    stringstream_t s;
+    s << IpfsJsonStr;
+    json::value Response = json::value::parse(s);
+    string temp = "";    
+    block.nVersion = atoi(Response["nVersion"].serialize());
+
+    temp = Response["hashMerkleRoot"].serialize();
+    temp.erase(0,temp.find_first_not_of("\""));
+    temp.erase(temp.find_last_not_of("\"")+1); 
+    block.hashMerkleRoot = uint256S(temp);    
+
+    temp = Response["hashPrevBlock"].serialize();
+    temp.erase(0,temp.find_first_not_of("\""));
+    temp.erase(temp.find_last_not_of("\"")+1); 
+    block.hashPrevBlock = uint256S(temp);    
+
+    block.nTime = atoi(Response["nTime"].serialize());    
+    block.nBits = atoi(Response["nBits"].serialize());      
+    block.nNonce = atoi(Response["nNonce"].serialize());    
+    for(int i =0; i < atoi(Response["vtx"]["size"].serialize()); i++){
+        string txHex = Response["vtx"]["Txs"][i].serialize();
+        txHex.erase(0,txHex.find_first_not_of("\""));
+        txHex.erase(txHex.find_last_not_of("\"")+1);    
+
+        CMutableTransaction Mtx{};
+        DecodeHexTx(Mtx,txHex,true);
+        block.vtx.push_back(MakeTransactionRef(std::move(Mtx)));
+    }
+    // cout << "block tostring: " << block.ToString() << endl;     
+
+}
+//////////////////////////////////////////////////////////////////////////////
+//
 // ipfs connection functions
 // author: Hank
 // time  : 2019/06/12
@@ -947,8 +990,6 @@ static void GetFromIPFS(CBlock& block, string str)
     json::value Response = json::value::parse(s);
 
     string temp = "";
-    string blockHex = Response.serialize();
-    // cout << "blockHex:\n" << blockHex << endl;
 
     block.nVersion = atoi(Response["nVersion"].serialize());
     // cout << "nVersion: " << atoi(Response["nVersion"].serialize()) << endl;
@@ -984,6 +1025,7 @@ static void GetFromIPFS(CBlock& block, string str)
     // CTransaction finaltx = CTransaction(Mtx);
     // cout << "finaltx:\n" << finaltx.ToString() << endl;
     // cout << block.ToString() << endl;
+    cout << "GetFromIPFS:\n"<< block.hashMerkleRoot.ToString() << endl;
 }
 
 static string AddToIPFS(string str)
@@ -1059,7 +1101,7 @@ void CppRestProccessVtxToJson(vector<CTransactionRef> vtx, int vtx_size, json::v
 {
     int index = 0;
     root["vtx"]["size"] = json::value::number(vtx_size);
-
+    
     for (const auto& it : vtx) {
         const CTransaction& tx = *it;
         string hexTx = EncodeHexTx(tx);
@@ -1113,8 +1155,6 @@ void CppRestConstructBlockToJson(CBlock block, json::value& root)
     root["nBits"] = json::value::number(block.nBits);
     root["nNonce"] = json::value::number(block.nNonce);
     CppRestProccessVtxToJson(block.vtx, block.vtx.size(), root);
-
-    // cout << "Construction completed...." << endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1186,11 +1226,12 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
     // cout << "Getting block from this hash:" << IPFShash << endl;
     // ---- Get IPFS file by IPFShash ----
     block.SetNull();
-    GetFromIPFS(block, IPFShash);
+    // GetFromIPFS(block, IPFShash);
+    GetFromIPFS_GO(block, IPFShash);
     /* Do not use levelDB ----Hanry 20191209
     if (!ReadBlockFromDisk(block, blockPos, consensusParams))
-        return false;
-    */
+        return false;*/
+    
     if (block.GetHash() != pindex->GetBlockHash())
         return error("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
             pindex->ToString(), pindex->GetBlockPos().ToString());
@@ -3587,26 +3628,37 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
         return FlatFilePos();
     }
     if (dbp == nullptr) {
-        // Add block json to IPFS (moved from writeblockToDisk) 2019/8/13
-        // Change json construction function to solve memory leak problem.
-        // author: Hank
-        // time  : 2019/8/17
-        // cout << "Processing Height: " << nHeight << endl;
+        // // Add block json to IPFS (moved from writeblockToDisk) 2019/8/13
+        // // Change json construction function to solve memory leak problem.
+        // // author: Hank
+        // // time  : 2019/8/17
+        // // cout << "Processing Height: " << nHeight << endl;
+        // json::value root;
+        // CppRestConstructBlockToJson(block, root);
+        // string blockjson = root.serialize();
+        // string ResponseJson = AddToIPFS(blockjson);
+        // // sometimes this command doesn't work.... Hank 20190817
+        // // cout << blockjson << endl;
+        // // Only need the hash value from the response json.  That's why I did the following things to pop it. Hank 20190817
+        // stringstream_t s;
+        // s << ResponseJson;
+        // json::value Response = json::value::parse(s);
+        // string IPFSHash;
+        // IPFSHash = Response["Hash"].serialize();
+        // IPFSHash.erase(0, IPFSHash.find_first_not_of("\""));
+        // IPFSHash.erase(IPFSHash.find_last_not_of("\"") + 1);
+        // //cout << "IPFSHash: " << IPFSHash << endl;
+
         json::value root;
         CppRestConstructBlockToJson(block, root);
-        string blockjson = root.serialize();
-        string ResponseJson = AddToIPFS(blockjson);
-        // sometimes this command doesn't work.... Hank 20190817
-        // cout << blockjson << endl;
-        // Only need the hash value from the response json.  That's why I did the following things to pop it. Hank 20190817
-        stringstream_t s;
-        s << ResponseJson;
-        json::value Response = json::value::parse(s);
-        string IPFSHash;
-        IPFSHash = Response["Hash"].serialize();
-        IPFSHash.erase(0, IPFSHash.find_first_not_of("\""));
-        IPFSHash.erase(IPFSHash.find_last_not_of("\"") + 1);
-        //cout << "IPFSHash: " << IPFSHash << endl;
+        // cout << to_string(nHeight) << " : " << block.vtx.size() << endl;
+        string blockjson = root.serialize();      
+        GoString go_str;
+        go_str.p = blockjson.c_str();
+        go_str.n = blockjson.length();
+        string IPFSHash = AddObjectToIPFS(go_str); 
+
+        // cout << "writing height:" << nHeight <<" ipfs hash: " << IPFSHash << endl;
 
         // ---- Write IPFS-HASH To Disk ----Hank 20190730
         WriteIPFSHashToDisk(to_string(nHeight), IPFSHash);
@@ -3614,8 +3666,8 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
         if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart())) {
             AbortNode("Failed to write block");
             return FlatFilePos();
-        }
-        */
+        }*/
+        
     }
     return blockPos;
 }
