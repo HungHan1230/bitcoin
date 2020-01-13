@@ -1604,7 +1604,6 @@ bool AppInitMain(InitInterfaces& interfaces)
                         LogPrintf("Prune: pruned datadir may not have more than %d blocks; only checking available blocks\n",
                             MIN_BLOCKS_TO_KEEP);
                     }
-
                     CBlockIndex* tip = ::ChainActive().Tip();
                     RPCNotifyBlockChange(true, tip);
                     if (tip && tip->nTime > GetAdjustedTime() + 2 * 60 * 60) {
@@ -1613,12 +1612,14 @@ bool AppInitMain(InitInterfaces& interfaces)
                                 "Only rebuild the block database if you are sure that your computer's date and time are correct");
                         break;
                     }
-
+                    
                     if (!CVerifyDB().VerifyDB(chainparams, pcoinsdbview.get(), gArgs.GetArg("-checklevel", DEFAULT_CHECKLEVEL),
                                   gArgs.GetArg("-checkblocks", DEFAULT_CHECKBLOCKS))) {
                         strLoadError = _("Corrupted block database detected");
                         break;
                     }
+                    // LogPrintf("tip :%d\n", tip->nHeight); // Henry 20191216
+                    // tip->nHeight = 10000; // Henry 20191216
                 }
             } catch (const std::exception& e) {
                 LogPrintf("%s\n", e.what());
@@ -1677,11 +1678,12 @@ bool AppInitMain(InitInterfaces& interfaces)
     }
 
     // ********************************************************* Step 9: load wallet
+    /* pindexWalk->pprev error Henry 20191216 */
     for (const auto& client : interfaces.chain_clients) {
         if (!client->load()) {
             return false;
         }
-    }
+    }/* */
 
     // ********************************************************* Step 10: data directory maintenance
 
@@ -1779,9 +1781,10 @@ bool AppInitMain(InitInterfaces& interfaces)
     connOptions.nMaxOutbound = std::min(MAX_OUTBOUND_CONNECTIONS, connOptions.nMaxConnections);
     connOptions.nMaxAddnode = MAX_ADDNODE_CONNECTIONS;
     connOptions.nMaxFeeler = 1;
-    connOptions.nBestHeight = chain_active_height;
+    connOptions.nBestHeight = chain_active_height; 
+    // connOptions.nBestHeight = 609275; //Henry 20191222
     connOptions.uiInterface = &uiInterface;
-    connOptions.m_banman = g_banman.get();
+    connOptions.m_banman = g_banman.get(); 
     connOptions.m_msgproc = peerLogic.get();
     connOptions.nSendBufferMaxSize = 1000*gArgs.GetArg("-maxsendbuffer", DEFAULT_MAXSENDBUFFER);
     connOptions.nReceiveFloodSize = 1000*gArgs.GetArg("-maxreceivebuffer", DEFAULT_MAXRECEIVEBUFFER);
@@ -1827,9 +1830,11 @@ bool AppInitMain(InitInterfaces& interfaces)
             connOptions.m_specified_outgoing = connect;
         }
     }
-    if (!g_connman->Start(scheduler, connOptions)) {
+    /* // comment out Henry 20191222*/
+    if (!g_connman->Start(scheduler, connOptions)) { 
         return false;
     }
+    
 
     // ********************************************************* Step 13: finished
 

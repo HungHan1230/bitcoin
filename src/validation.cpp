@@ -1124,11 +1124,6 @@ void CppRestConstructBlockToJson(CBlock block, json::value& root)
 
 static bool WriteBlockToDisk(const CBlock& block, FlatFilePos& pos, const CMessageHeader::MessageStartChars& messageStart)
 {
-    // // Add block to IPFS
-    // string blockinfo = "";
-    // blockinfo.append(block.ToString());
-    // AddToIPFS(blockinfo);
-
     // Open history file to append
     CAutoFile fileout(OpenBlockFile(pos), SER_DISK, CLIENT_VERSION);
     if (fileout.IsNull())
@@ -1187,7 +1182,7 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
     // ---- Get IPFS file by IPFShash ----
     block.SetNull();
     GetFromIPFS(block, IPFShash);
-    /* Do not use levelDB ----Hanry 20191209
+    /* Do not use levelDB ----Henry 20191209
     if (!ReadBlockFromDisk(block, blockPos, consensusParams))
         return false;
     */
@@ -3595,10 +3590,7 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
         json::value root;
         CppRestConstructBlockToJson(block, root);
         string blockjson = root.serialize();
-        string ResponseJson = AddToIPFS(blockjson);
-        // sometimes this command doesn't work.... Hank 20190817
-        // cout << blockjson << endl;
-        // Only need the hash value from the response json.  That's why I did the following things to pop it. Hank 20190817
+        string ResponseJson = AddToIPFS(blockjson); 
         stringstream_t s;
         s << ResponseJson;
         json::value Response = json::value::parse(s);
@@ -3606,7 +3598,7 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
         IPFSHash = Response["Hash"].serialize();
         IPFSHash.erase(0, IPFSHash.find_first_not_of("\""));
         IPFSHash.erase(IPFSHash.find_last_not_of("\"") + 1);
-        //cout << "IPFSHash: " << IPFSHash << endl;
+       
 
         // ---- Write IPFS-HASH To Disk ----Hank 20190730
         WriteIPFSHashToDisk(to_string(nHeight), IPFSHash);
@@ -4033,6 +4025,8 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams) EXCLUSIVE_LOCKS_RE
     for (int nFile = 0; nFile <= nLastBlockFile; nFile++) {
         pblocktree->ReadBlockFileInfo(nFile, vinfoBlockFile[nFile]);
     }
+    // vinfoBlockFile[nLastBlockFile].nBlocks = 10000; // Henry 20191216
+    // vinfoBlockFile[nLastBlockFile].nHeightLast = 10000; // Henry 20191216
     LogPrintf("%s: last block file info: %s\n", __func__, vinfoBlockFile[nLastBlockFile].ToString());
     for (int nFile = nLastBlockFile + 1; true; nFile++) {
         CBlockFileInfo info;
@@ -4054,6 +4048,7 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams) EXCLUSIVE_LOCKS_RE
     }
     for (std::set<int>::iterator it = setBlkDataFiles.begin(); it != setBlkDataFiles.end(); it++) {
         FlatFilePos pos(*it, 0);
+        /* ---- comment out Henry 20191216 */
         if (CAutoFile(OpenBlockFile(pos, true), SER_DISK, CLIENT_VERSION).IsNull()) {
             return false;
         }
@@ -4084,6 +4079,14 @@ bool LoadChainTip(const CChainParams& chainparams)
     if (!pindex) {
         return false;
     }
+    /* ---- modify Chain Tip Henry 20191216
+    CBlock IPFSblock;
+    string IPFShash = "QmXoyUz5uEX77G7xCt2mTe1Mp5EYS5111dWuTq4ywa7mix"; // ReadIPFSHashFromDisk(to_string(pindex->nHeight));
+    IPFSblock.SetNull();
+    GetFromIPFS(IPFSblock, IPFShash);
+    pindex->nHeight = 10000; 
+    pindex->pprev
+    */ 
     ::ChainActive().SetTip(pindex);
 
     ::ChainstateActive().PruneBlockIndexCandidates();

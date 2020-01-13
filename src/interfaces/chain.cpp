@@ -33,6 +33,9 @@
 
 #include <memory>
 #include <utility>
+#include <stdlib.h> //Henry 20191222
+#include <string> //Henry 20191222
+using namespace std;
 
 namespace interfaces {
 namespace {
@@ -138,6 +141,7 @@ class LockImpl : public Chain::Lock, public UniqueLock<CCriticalSection>
     }
     Optional<int> findLocatorFork(const CBlockLocator& locator) override
     {
+        // return 609275; // Henry 191222
         LockAssertion lock(::cs_main);
         if (CBlockIndex* fork = FindForkInGlobalIndex(::ChainActive(), locator)) {
             return fork->nHeight;

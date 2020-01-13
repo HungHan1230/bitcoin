@@ -2607,6 +2607,7 @@ void CConnman::SetBestHeight(int height)
 
 int CConnman::GetBestHeight() const
 {
+    // return 609275; // return specified height. Henry 20191222
     return nBestHeight.load(std::memory_order_acquire);
 }
 

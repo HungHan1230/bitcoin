@@ -4279,7 +4279,6 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(interfaces::Chain& chain,
             }
         }
     }
-
     const Optional<int> tip_height = locked_chain->getHeight();
     if (tip_height) {
         walletInstance->m_last_block_processed = locked_chain->getBlockHash(*tip_height);
