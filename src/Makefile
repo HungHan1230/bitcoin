@@ -174,10 +174,10 @@ am__append_33 = \
   wallet/test/init_test_fixture.h
 
 am__append_34 = $(LIBBITCOIN_WALLET)
-am__append_35 = $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
+#am__append_35 = $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
 am__append_36 = $(CLEAN_BITCOIN_TEST)
 am__append_37 = bench/bench_bitcoin
-am__append_38 = $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
+#am__append_38 = $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
 am__append_39 = bench/coin_selection.cpp \
 	bench/wallet_balance.cpp
 am__append_40 = $(CLEAN_BITCOIN_BENCH)
@@ -189,7 +189,7 @@ am__append_45 = $(BITCOIN_QT_WALLET_BIP70_CPP)
 #am__append_46 = $(BITCOIN_MM)
 #am__append_47 = $(BITCOIN_RC)
 am__append_48 = $(LIBBITCOIN_UTIL) $(LIBBITCOIN_WALLET)
-am__append_49 = $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
+#am__append_49 = $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
 am__append_50 = $(SSL_LIBS)
 ##am__append_51 = $(SSL_LIBS)
 am__append_52 = $(CLEAN_QT)
@@ -211,7 +211,7 @@ am__append_58 = \
   qt/test/paymentservertests.cpp
 
 am__append_59 = $(LIBBITCOIN_UTIL) $(LIBBITCOIN_WALLET)
-am__append_60 = $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
+#am__append_60 = $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
 am__append_61 = $(CLEAN_BITCOIN_QT_TEST)
 subdir = src
 SUBDIRS =
@@ -675,10 +675,10 @@ libbitcoin_zmq_a_LIBADD =
 am__libbitcoin_zmq_a_SOURCES_DIST = zmq/zmqabstractnotifier.cpp \
 	zmq/zmqnotificationinterface.cpp zmq/zmqpublishnotifier.cpp \
 	zmq/zmqrpc.cpp
-am_libbitcoin_zmq_a_OBJECTS = zmq/libbitcoin_zmq_a-zmqabstractnotifier.$(OBJEXT) \
-	zmq/libbitcoin_zmq_a-zmqnotificationinterface.$(OBJEXT) \
-	zmq/libbitcoin_zmq_a-zmqpublishnotifier.$(OBJEXT) \
-	zmq/libbitcoin_zmq_a-zmqrpc.$(OBJEXT)
+#am_libbitcoin_zmq_a_OBJECTS = zmq/libbitcoin_zmq_a-zmqabstractnotifier.$(OBJEXT) \
+#	zmq/libbitcoin_zmq_a-zmqnotificationinterface.$(OBJEXT) \
+#	zmq/libbitcoin_zmq_a-zmqpublishnotifier.$(OBJEXT) \
+#	zmq/libbitcoin_zmq_a-zmqrpc.$(OBJEXT)
 libbitcoin_zmq_a_OBJECTS = $(am_libbitcoin_zmq_a_OBJECTS)
 qt_libbitcoinqt_a_AR = $(AR) $(ARFLAGS)
 qt_libbitcoinqt_a_LIBADD =
@@ -1119,9 +1119,9 @@ am__DEPENDENCIES_2 = $(am__append_20)
 am__DEPENDENCIES_3 =
 #am__DEPENDENCIES_4 = $(am__DEPENDENCIES_3)
 am__DEPENDENCIES_4 = univalue/libunivalue.la
-am__DEPENDENCIES_5 =  \
-	$(LIBBITCOIN_ZMQ) \
-	$(am__DEPENDENCIES_3)
+#am__DEPENDENCIES_5 =  \
+#	$(LIBBITCOIN_ZMQ) \
+#	$(am__DEPENDENCIES_3)
 bench_bench_bitcoin_DEPENDENCIES =  \
 	$(LIBBITCOIN_SERVER) $(LIBBITCOIN_WALLET) \
 	$(LIBBITCOIN_SERVER) $(LIBBITCOIN_COMMON) \
@@ -1204,9 +1204,9 @@ am_qt_bitcoin_qt_OBJECTS =  \
 	qt/qt_bitcoin_qt-main.$(OBJEXT) \
 	$(am__objects_33)
 qt_bitcoin_qt_OBJECTS = $(am_qt_bitcoin_qt_OBJECTS)
-am__DEPENDENCIES_6 =  \
-	$(LIBBITCOIN_ZMQ) \
-	$(am__DEPENDENCIES_3)
+#am__DEPENDENCIES_6 =  \
+#	$(LIBBITCOIN_ZMQ) \
+#	$(am__DEPENDENCIES_3)
 am__DEPENDENCIES_7 =  \
 	$(am__DEPENDENCIES_3)
 ##am__DEPENDENCIES_8 = $(am__DEPENDENCIES_3)
@@ -1266,9 +1266,9 @@ nodist_qt_test_test_bitcoin_qt_OBJECTS =  \
 qt_test_test_bitcoin_qt_OBJECTS =  \
 	$(am_qt_test_test_bitcoin_qt_OBJECTS) \
 	$(nodist_qt_test_test_bitcoin_qt_OBJECTS)
-am__DEPENDENCIES_9 =  \
-	$(LIBBITCOIN_ZMQ) \
-	$(am__DEPENDENCIES_3)
+#am__DEPENDENCIES_9 =  \
+#	$(LIBBITCOIN_ZMQ) \
+#	$(am__DEPENDENCIES_3)
 qt_test_test_bitcoin_qt_DEPENDENCIES =  \
 	$(LIBBITCOINQT) $(LIBBITCOIN_SERVER) \
 	$(am__append_59) $(am__DEPENDENCIES_9) \
@@ -1792,9 +1792,9 @@ nodist_test_test_bitcoin_OBJECTS =  \
 	$(am__objects_67)
 test_test_bitcoin_OBJECTS = $(am_test_test_bitcoin_OBJECTS) \
 	$(nodist_test_test_bitcoin_OBJECTS)
-am__DEPENDENCIES_11 =  \
-	$(LIBBITCOIN_ZMQ) \
-	$(am__DEPENDENCIES_3)
+#am__DEPENDENCIES_11 =  \
+#	$(LIBBITCOIN_ZMQ) \
+#	$(am__DEPENDENCIES_3)
 test_test_bitcoin_DEPENDENCIES = $(am__append_34) \
 	$(LIBBITCOIN_SERVER) $(LIBBITCOIN_CLI) \
 	$(LIBBITCOIN_COMMON) $(LIBBITCOIN_UTIL) \
@@ -2220,16 +2220,16 @@ am__relativize = \
     dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
   done; \
   reldir="$$dir2"
-ACLOCAL = ${SHELL} /home/hank/MyBitcoin/bitcoin/build-aux/missing aclocal-1.15
+ACLOCAL = ${SHELL} /home/id/bitcoin/build-aux/missing aclocal-1.15
 AMTAR = $${TAR-tar}
 AM_DEFAULT_VERBOSITY = 0
 AR = /usr/bin/ar
 ARFLAGS = cr
-AUTOCONF = ${SHELL} /home/hank/MyBitcoin/bitcoin/build-aux/missing autoconf
-AUTOHEADER = ${SHELL} /home/hank/MyBitcoin/bitcoin/build-aux/missing autoheader
-AUTOMAKE = ${SHELL} /home/hank/MyBitcoin/bitcoin/build-aux/missing automake-1.15
+AUTOCONF = ${SHELL} /home/id/bitcoin/build-aux/missing autoconf
+AUTOHEADER = ${SHELL} /home/id/bitcoin/build-aux/missing autoheader
+AUTOMAKE = ${SHELL} /home/id/bitcoin/build-aux/missing automake-1.15
 AVX2_CXXFLAGS = -mavx -mavx2
-AWK = gawk
+AWK = mawk
 BDB_CFLAGS = 
 BDB_CPPFLAGS = 
 BDB_LIBS = -ldb_cxx-4.8
@@ -2263,9 +2263,9 @@ COPYRIGHT_HOLDERS_SUBSTITUTION = Bitcoin Core
 COPYRIGHT_YEAR = 2019
 CPP = gcc -E
 CPPFILT = /usr/bin/c++filt
-CPPFLAGS = -I/home/hank/MyBitcoin/db-4.8.30.NC/build_unix/build/include/ -O2 -DHAVE_BUILD_INFO -D__STDC_FORMAT_MACROS
+CPPFLAGS = -I/include/ -O2 -DHAVE_BUILD_INFO -D__STDC_FORMAT_MACROS
 CRYPTO_CFLAGS = 
-CRYPTO_LIBS = -lboost_system -lcrypto -lssl -lcpprest -ljsoncpp
+CRYPTO_LIBS = -lboost_system -lcrypto -lssl -lcpprest
 CXX = g++ -std=c++11
 CXXCPP = g++ -std=c++11 -E
 CXXDEPMODE = depmode=gcc3
@@ -2313,7 +2313,7 @@ INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LCOV = 
 LCOV_OPTS = 
 LD = /usr/bin/ld -m elf_x86_64
-LDFLAGS = -L/home/hank/MyBitcoin/db-4.8.30.NC/build_unix/build/lib/
+LDFLAGS = -L/lib/
 LEVELDB_CPPFLAGS =  $(am__append_21)
 LEVELDB_TARGET_FLAGS = -DOS_LINUX
 LIBLEVELDB =  $(am__append_19)
@@ -2329,11 +2329,11 @@ LTLIBOBJS =
 LT_SYS_LIBRARY_PATH = 
 LUPDATE = /usr/lib/qt5/bin/lupdate
 MAINT = 
-MAKEINFO = ${SHELL} /home/hank/MyBitcoin/bitcoin/build-aux/missing makeinfo
+MAKEINFO = ${SHELL} /home/id/bitcoin/build-aux/missing makeinfo
 MAKENSIS = 
 MANIFEST_TOOL = :
 MINIUPNPC_CPPFLAGS = 
-MINIUPNPC_LIBS = -lminiupnpc
+MINIUPNPC_LIBS = 
 MKDIR_P = /bin/mkdir -p
 MOC = /usr/lib/qt5/bin/moc
 MOC_DEFS = -DHAVE_CONFIG_H -I$(srcdir)
@@ -2370,7 +2370,7 @@ PTHREAD_LIBS =
 PYTHON = /usr/bin/python3.6
 PYTHONPATH = 
 QR_CFLAGS = 
-QR_LIBS = -lqrencode
+QR_LIBS = 
 QT5_CFLAGS = -I/usr/include/x86_64-linux-gnu/qt5/QtNetwork -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/x86_64-linux-gnu/qt5
 QT5_LIBS = -lQt5Network -lQt5Widgets -lQt5Gui -lQt5Core
 QTACCESSIBILITY_CFLAGS = 
@@ -2439,11 +2439,11 @@ X11XCB_CFLAGS =
 X11XCB_LIBS = 
 XGETTEXT = /usr/bin/xgettext
 ZMQ_CFLAGS = 
-ZMQ_LIBS = -lzmq
-abs_builddir = /home/hank/MyBitcoin/bitcoin/src
-abs_srcdir = /home/hank/MyBitcoin/bitcoin/src
-abs_top_builddir = /home/hank/MyBitcoin/bitcoin
-abs_top_srcdir = /home/hank/MyBitcoin/bitcoin
+ZMQ_LIBS = 
+abs_builddir = /home/id/bitcoin/src
+abs_srcdir = /home/id/bitcoin/src
+abs_top_builddir = /home/id/bitcoin
+abs_top_srcdir = /home/id/bitcoin
 ac_ct_AR = ar
 ac_ct_CC = gcc
 ac_ct_CXX = g++
@@ -2475,7 +2475,7 @@ host_vendor = pc
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /home/hank/MyBitcoin/bitcoin/build-aux/install-sh
+install_sh = ${SHELL} /home/id/bitcoin/build-aux/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -2524,7 +2524,7 @@ LIBBITCOIN_UTIL = libbitcoin_util.a
 LIBBITCOIN_CRYPTO_BASE = crypto/libbitcoin_crypto_base.a
 LIBBITCOINQT = qt/libbitcoinqt.a
 LIBSECP256K1 = secp256k1/libsecp256k1.la
-LIBBITCOIN_ZMQ = libbitcoin_zmq.a
+#LIBBITCOIN_ZMQ = libbitcoin_zmq.a
 LIBBITCOINCONSENSUS = libbitcoinconsensus.la
 LIBBITCOIN_WALLET = libbitcoin_wallet.a
 LIBBITCOIN_WALLET_TOOL = libbitcoin_wallet_tool.a
@@ -2696,13 +2696,13 @@ libbitcoin_server_a_SOURCES = addrdb.cpp addrman.cpp banman.cpp \
 	txdb.cpp txmempool.cpp ui_interface.cpp validation.cpp \
 	validationinterface.cpp versionbits.cpp $(BITCOIN_CORE_H) \
 	$(am__append_8) $(am__append_9)
-libbitcoin_zmq_a_CPPFLAGS = $(BITCOIN_INCLUDES) $(ZMQ_CFLAGS)
-libbitcoin_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_zmq_a_SOURCES = \
-  zmq/zmqabstractnotifier.cpp \
-  zmq/zmqnotificationinterface.cpp \
-  zmq/zmqpublishnotifier.cpp \
-  zmq/zmqrpc.cpp
+#libbitcoin_zmq_a_CPPFLAGS = $(BITCOIN_INCLUDES) $(ZMQ_CFLAGS)
+#libbitcoin_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+#libbitcoin_zmq_a_SOURCES = \
+#  zmq/zmqabstractnotifier.cpp \
+#  zmq/zmqnotificationinterface.cpp \
+#  zmq/zmqpublishnotifier.cpp \
+#  zmq/zmqrpc.cpp
 
 
 # wallet: shared between bitcoind and bitcoin-qt, but only linked

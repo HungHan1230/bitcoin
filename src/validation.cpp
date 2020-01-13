@@ -4054,9 +4054,10 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams) EXCLUSIVE_LOCKS_RE
     }
     for (std::set<int>::iterator it = setBlkDataFiles.begin(); it != setBlkDataFiles.end(); it++) {
         FlatFilePos pos(*it, 0);
+        /* ---- comment out with Unable to open file blk00000.dat crash Henry 20200113
         if (CAutoFile(OpenBlockFile(pos, true), SER_DISK, CLIENT_VERSION).IsNull()) {
             return false;
-        }
+        }*/
     }
 
     // Check whether we have ever pruned block & undo files
