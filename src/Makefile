@@ -2263,9 +2263,9 @@ COPYRIGHT_HOLDERS_SUBSTITUTION = Bitcoin Core
 COPYRIGHT_YEAR = 2019
 CPP = gcc -E
 CPPFILT = /usr/bin/c++filt
-CPPFLAGS =  -DHAVE_BUILD_INFO -D__STDC_FORMAT_MACROS
+CPPFLAGS = -I/include/ -O2 -DHAVE_BUILD_INFO -D__STDC_FORMAT_MACROS
 CRYPTO_CFLAGS = 
-CRYPTO_LIBS = -lboost_system -lcrypto -lssl -lcpprest
+CRYPTO_LIBS = -lboost_system -lcrypto -lssl -lcpprest -lipfs_myclient -L/usr/local/lib/
 CXX = g++ -std=c++11
 CXXCPP = g++ -std=c++11 -E
 CXXDEPMODE = depmode=gcc3
@@ -2313,7 +2313,7 @@ INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LCOV = 
 LCOV_OPTS = 
 LD = /usr/bin/ld -m elf_x86_64
-LDFLAGS = 
+LDFLAGS = -L/lib/
 LEVELDB_CPPFLAGS =  $(am__append_21)
 LEVELDB_TARGET_FLAGS = -DOS_LINUX
 LIBLEVELDB =  $(am__append_19)
