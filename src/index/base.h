@@ -39,8 +39,7 @@ private:
     /// Whether the index is in sync with the main chain. The flag is flipped
     /// from false to true once, after which point this starts processing
     /// ValidationInterface notifications to stay in sync.
-    std::atomic<bool> m_synced{false}; // origin Henry 20191222
-    // std::atomic<bool> m_synced{true}; // close sync Henry 20191222
+    std::atomic<bool> m_synced{false}; // default is false Henry 20191222
 
     /// The last block in the chain that the index is in sync with.
     std::atomic<const CBlockIndex*> m_best_block_index{nullptr};

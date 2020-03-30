@@ -4074,6 +4074,7 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams) EXCLUSIVE_LOCKS_RE
         return false;
 
     // Load block file info
+    // nLastBlockFile = 1983; // Henry 20200316
     pblocktree->ReadLastBlockFile(nLastBlockFile);
     vinfoBlockFile.resize(nLastBlockFile + 1);
     LogPrintf("%s: last block file = %i\n", __func__, nLastBlockFile);
@@ -4091,7 +4092,7 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams) EXCLUSIVE_LOCKS_RE
             break;
         }
     }
-
+    // return true; // leave this function Henry 20200316
     // Check presence of blk files
     LogPrintf("Checking all blk files are present...\n");
     std::set<int> setBlkDataFiles;
@@ -4101,13 +4102,13 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams) EXCLUSIVE_LOCKS_RE
             setBlkDataFiles.insert(pindex->nFile);
         }
     }
+    /* comment out check blk files. Henry 20200316
     for (std::set<int>::iterator it = setBlkDataFiles.begin(); it != setBlkDataFiles.end(); it++) {
         FlatFilePos pos(*it, 0);
-        /* ---- comment out with XXX crash Henry 20200113
         if (CAutoFile(OpenBlockFile(pos, true), SER_DISK, CLIENT_VERSION).IsNull()) {
             return false;
-        }*/
-    }
+        }
+    }*/
 
     // Check whether we have ever pruned block & undo files
     pblocktree->ReadFlag("prunedblockfiles", fHavePruned);
@@ -4140,8 +4141,8 @@ bool LoadChainTip(const CChainParams& chainparams)
     IPFSblock.SetNull();
     GetFromIPFS(IPFSblock, IPFShash);
     pindex->nHeight = 10000; 
-    pindex->pprev
-    */ 
+    pindex->pprev;
+    */
     ::ChainActive().SetTip(pindex);
 
     ::ChainstateActive().PruneBlockIndexCandidates();
@@ -4206,14 +4207,14 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
             return error("%s: *** found bad block at %d, hash=%s (%s)\n", __func__,
                 pindex->nHeight, pindex->GetBlockHash().ToString(), FormatStateMessage(state));
         // check level 2: verify undo validity
-        /* if (nCheckLevel >= 2 && pindex) { // comment out with rev crash Henry 20200113
+        if (nCheckLevel >= 2 && pindex) { // comment out with rev crash Henry 20200113
             CBlockUndo undo;
             if (!pindex->GetUndoPos().IsNull()) {
                 if (!UndoReadFromDisk(undo, pindex)) {
                     return error("VerifyDB(): *** found bad undo data at %d, hash=%s\n", pindex->nHeight, pindex->GetBlockHash().ToString());
                 }
             }
-        } */
+        } 
         // check level 3: check for inconsistencies during memory-only disconnect of tip blocks
         if (nCheckLevel >= 3 && (coins.DynamicMemoryUsage() + pcoinsTip->DynamicMemoryUsage()) <= nCoinCacheUsage) {
             assert(coins.GetBestBlock() == pindex->GetBlockHash());

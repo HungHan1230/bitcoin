@@ -1486,7 +1486,13 @@ bool AppInitMain(InitInterfaces& interfaces)
     LogPrintf("* Using %.1f MiB for chain state database\n", nCoinDBCache * (1.0 / 1024 / 1024));
     LogPrintf("* Using %.1f MiB for in-memory UTXO set (plus up to %.1f MiB of unused mempool space)\n", nCoinCacheUsage * (1.0 / 1024 / 1024), nMempoolSizeMax * (1.0 / 1024 / 1024));
 
-    bool fLoaded = false;
+    bool fLoaded = false; // fLoaded default is false. Henry 20200316
+    // set Tip. Henry 20200316
+    /* std::string bestHash = "000000000000000000000bc5004cf76eac33576ea2aa883261697a32a1967851";
+    CBlockIndex* pindex = LookupBlockIndex(uint256S(bestHash));
+    ::ChainActive().SetTip(pindex); */
+    // set Tip. Henry 20200316
+
     while (!fLoaded && !ShutdownRequested()) {
         bool fReset = fReindex;
         std::string strLoadError;
@@ -1531,7 +1537,7 @@ bool AppInitMain(InitInterfaces& interfaces)
                 if (!mapBlockIndex.empty() && !LookupBlockIndex(chainparams.GetConsensus().hashGenesisBlock)) {
                     return InitError(_("Incorrect or no genesis block found. Wrong datadir for network?"));
                 }
-
+                
                 // Check for changed -prune state.  What we are concerned about is a user who has pruned blocks
                 // in the past, but is now trying to run unpruned.
                 if (fHavePruned && !fPruneMode) {
@@ -1721,22 +1727,25 @@ bool AppInitMain(InitInterfaces& interfaces)
     // Either install a handler to notify us when genesis activates, or set fHaveGenesis directly.
     // No locking, as this happens before any background thread is started.
     boost::signals2::connection block_notify_genesis_wait_connection;
+    // set fHaveGenesis = true. Henry 20200316
     if (::ChainActive().Tip() == nullptr) {
         block_notify_genesis_wait_connection = uiInterface.NotifyBlockTip_connect(BlockNotifyGenesisWait);
     } else {
         fHaveGenesis = true;
     }
+    fHaveGenesis = true; // Henry add 20200316
 
     if (gArgs.IsArgSet("-blocknotify"))
         uiInterface.NotifyBlockTip_connect(BlockNotifyCallback);
-
+    // commebt out to stop sync. Henry 20200316
     std::vector<fs::path> vImportFiles;
     for (const std::string& strFile : gArgs.GetArgs("-loadblock")) {
+        LogPrintf("%s", strFile); // Henry 20200330
         vImportFiles.push_back(strFile);
     }
 
     threadGroup.create_thread(std::bind(&ThreadImport, vImportFiles));
-
+    
     // Wait for genesis block to be processed
     {
         WAIT_LOCK(g_genesis_wait_mutex, lock);
@@ -1762,6 +1771,7 @@ bool AppInitMain(InitInterfaces& interfaces)
         LOCK(cs_main);
         LogPrintf("mapBlockIndex.size() = %u\n", mapBlockIndex.size());
         chain_active_height = ::ChainActive().Height();
+        chain_active_height = 620956;
     }
     LogPrintf("nBestHeight = %d\n", chain_active_height);
 
@@ -1782,7 +1792,7 @@ bool AppInitMain(InitInterfaces& interfaces)
     connOptions.nMaxAddnode = MAX_ADDNODE_CONNECTIONS;
     connOptions.nMaxFeeler = 1;
     connOptions.nBestHeight = chain_active_height; 
-    // connOptions.nBestHeight = 609275; //Henry 20191222
+    // connOptions.nBestHeight = 619693; //Henry 20200316
     connOptions.uiInterface = &uiInterface;
     connOptions.m_banman = g_banman.get(); 
     connOptions.m_msgproc = peerLogic.get();
