@@ -1177,7 +1177,7 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
     {
         LOCK(cs_main);
         blockPos = pindex->GetBlockPos();
-        // cout << "Height : " << pindex->nHeight << endl;
+        cout << "Read Height : " << pindex->nHeight << endl; // print Read block. Henry 20200330
     }
 
     // ---- Read Block From Disk ---- henry 20190723
@@ -3210,7 +3210,18 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     // Check the merkle root.
     if (fCheckMerkleRoot) {
         bool mutated;
+        // start Henry 20200406
+        // LogPrintf("hash : %s\n", block.GetHash().ToString());
+        // int count = 0;
+        // for (const auto& tx : block.vtx) {
+        //     count ++;
+        //     LogPrintf("tx[%d] : %s\n", count, tx->GetHash().ToString());
+        // }
+        // end Henry 20200406
         uint256 hashMerkleRoot2 = BlockMerkleRoot(block, &mutated);
+        // LogPrintf("block merkleRoot : %s\n", block.hashMerkleRoot.ToString()); // Henry 20200406
+        // LogPrintf("merkleRoot2 : %s\n", hashMerkleRoot2.ToString()); // Henry 20200406
+
         if (block.hashMerkleRoot != hashMerkleRoot2)
             return state.Invalid(ValidationInvalidReason::BLOCK_MUTATED, false, REJECT_INVALID, "bad-txnmrklroot", "hashMerkleRoot mismatch");
 
@@ -3591,7 +3602,7 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
         // Change json construction function to solve memory leak problem.
         // author: Hank
         // time  : 2019/8/17
-        // cout << "Processing Height: " << nHeight << endl;
+        cout << "Save Height : " << nHeight << endl; // print save height. Henry 20200330
         json::value root;
         CppRestConstructBlockToJson(block, root);
         string blockjson = root.serialize();

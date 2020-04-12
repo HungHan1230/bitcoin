@@ -4,7 +4,7 @@
 
 #include <consensus/merkle.h>
 #include <hash.h>
-
+#include <iostream> //Henry 20200406
 /*     WARNING! If you're reading this because you're learning about crypto
        and/or designing a new system that will use merkle trees, keep in mind
        that the following merkle tree algorithm has a serious flaw related to
@@ -68,6 +68,8 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
     leaves.resize(block.vtx.size());
     for (size_t s = 0; s < block.vtx.size(); s++) {
         leaves[s] = block.vtx[s]->GetHash();
+        // std::cout << "tx[" << s << "] : " << leaves[s].ToString() << "\n" << std::endl; //Henry 20200406
+
     }
     return ComputeMerkleRoot(std::move(leaves), mutated);
 }

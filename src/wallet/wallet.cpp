@@ -4286,7 +4286,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(interfaces::Chain& chain,
     } else {
         walletInstance->m_last_block_processed.SetNull();
     }
-
+    rescan_height = *tip_height; // to skip rescaning step. Herny 20200330
     if (tip_height && *tip_height != rescan_height)
     {
         // We can't rescan beyond non-pruned blocks, stop and throw an error.
