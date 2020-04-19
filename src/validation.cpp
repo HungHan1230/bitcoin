@@ -45,8 +45,8 @@
 #include <validationinterface.h>
 #include <warnings.h>
 
-#include <cpprest/filestream.h>
-#include <cpprest/http_client.h>
+#include <cpprest/filestream.h> // added by Hank 20190715
+#include <cpprest/http_client.h> // added by Hank 20190715
 #include <future>
 #include <sstream>
 
@@ -55,6 +55,11 @@
 #include <stdlib.h>
 #include <string>
 #include "ipfs_client/ipfs_myclient.h" // Hank edit 20191217
+#include <ctime> // Hank edit 20200215 for calculate the local search time and total access time
+#include<iostream> // Hank edit 20200215 for calculate the local search time and total access time
+#include<fstream>// Hank edit 20200215 for calculate the local search time and total access time
+#include "rpc/blockchain.h" // Hank edit 20200419 for test blocktoJSON
+#include <univalue.h> // Hank edit 20200419 for test blocktoJSON
 
 // added by Hank 20190715
 using namespace std;
@@ -1213,28 +1218,47 @@ bool ReadBlockFromDisk(CBlock& block, const FlatFilePos& pos, const Consensus::P
 
 bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus::Params& consensusParams)
 {
+    // calculate local search and loading time Hank 20200215
+    clock_t SearchStart, SearchStop, LoadStart, LoadStop;
+    double localsearch, localload;
+    SearchStart = clock();
+
     FlatFilePos blockPos;
     {
         LOCK(cs_main);
         blockPos = pindex->GetBlockPos();
         // cout << "Height : " << pindex->nHeight << endl;
     }
-
+    // calculate local search and loading time Hank 20200215
+    SearchStop = clock();
+    localsearch = double(SearchStop - SearchStart) / CLOCKS_PER_SEC;
+    cout << "local search time : " << localsearch << endl;    
+    LoadStart = clock();
     // ---- Read Block From Disk ---- henry 20190723
-    string IPFShash = ReadIPFSHashFromDisk(to_string(pindex->nHeight));
+    // string IPFShash = ReadIPFSHashFromDisk(to_string(pindex->nHeight));
 
     // cout << "Getting block from this hash:" << IPFShash << endl;
     // ---- Get IPFS file by IPFShash ----
     block.SetNull();
     // GetFromIPFS(block, IPFShash);
-    GetFromIPFS_GO(block, IPFShash);
-    /* Do not use levelDB ----Hanry 20191209
+    // GetFromIPFS_GO(block, IPFShash);
+    ///* Do not use levelDB ----Hanry 20191209
     if (!ReadBlockFromDisk(block, blockPos, consensusParams))
-        return false;*/
+        return false;
     
     if (block.GetHash() != pindex->GetBlockHash())
         return error("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
             pindex->ToString(), pindex->GetBlockPos().ToString());
+    // calculate local search and loading time Hank 20200215        
+    LoadStop = clock();
+    localload = double(LoadStop - LoadStart) / double(CLOCKS_PER_SEC);    
+    cout << "local loading time : " << localload << endl;
+    // output the access time calculation Hank 20200215
+    ofstream output;
+    output.open("./accesstime.csv", ios::app);
+    output<< localsearch << ", " << localload << ", " << localsearch + localload << endl;
+    output.close();
+
     return true;
 }
 
@@ -3647,7 +3671,7 @@ static FlatFilePos SaveBlockToDisk(const CBlock& block, int nHeight, const CChai
         // IPFSHash = Response["Hash"].serialize();
         // IPFSHash.erase(0, IPFSHash.find_first_not_of("\""));
         // IPFSHash.erase(IPFSHash.find_last_not_of("\"") + 1);
-        // //cout << "IPFSHash: " << IPFSHash << endl;
+        // //cout << "IPFSHash: " << IPFSHash << endl;        
 
         json::value root;
         CppRestConstructBlockToJson(block, root);
@@ -3735,7 +3759,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
 
     // Write block to history file
     if (fNewBlock) *fNewBlock = true;
-    try {
+    try {              
         FlatFilePos blockPos = SaveBlockToDisk(block, pindex->nHeight, chainparams, dbp);
         if (blockPos.IsNull()) {
             state.Error(strprintf("%s: Failed to find position to write new block to disk", __func__));
